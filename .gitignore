@@ -1,0 +1,7 @@
+data/northamerica_pois.parquet
+data/canada_pois.parquet
+data/australia_pois.parquet
+data/us_pois.parquet
+__pycache__/
+.env
+*.pyc
