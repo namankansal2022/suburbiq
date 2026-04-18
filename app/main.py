@@ -324,9 +324,7 @@ hr { border-color: var(--border) !important; margin: 2rem 0 !important; }
 # ============================================
 # LOAD DATA
 # ============================================
-DATA_PATH = os.path.expanduser(
-    "~/suburbiq/data/survival_scores.parquet"
-)
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "survival_scores.parquet")
 
 @st.cache_data
 def load_data():
