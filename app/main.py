@@ -628,9 +628,10 @@ with col_map:
 
             fig_map.update_layout(
                 mapbox=dict(
-                    style="carto-darkmatter",
+                    accesstoken="YOUR_TOKEN_HERE",
+                    style="mapbox://styles/mapbox/navigation-day-v1",
                     center=dict(lat=center_lat, lon=center_lng),
-                    zoom=6
+                    zoom=7
                 ),
                 height=420,
                 margin=dict(t=0, b=0, l=0, r=0),
