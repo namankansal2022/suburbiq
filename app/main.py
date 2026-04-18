@@ -326,7 +326,7 @@ hr { border-color: var(--border) !important; margin: 2rem 0 !important; }
 # ============================================
 DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "survival_scores.parquet")
 
-@st.cache_data
+
 def load_data():
     return pd.read_parquet(DATA_PATH)
 
