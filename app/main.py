@@ -21,7 +21,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ── Root & Reset ── */
 :root {
     --bg:        #0a0a0f;
     --surface:   #111118;
@@ -43,11 +42,9 @@ html, body, [class*="css"] {
     color: var(--text);
 }
 
-/* Hide Streamlit chrome */
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 2rem 2.5rem 4rem; max-width: 1400px; }
 
-/* ── Hero Banner ── */
 .hero {
     background: linear-gradient(135deg, #0d1117 0%, #0f1a2e 50%, #0a0f1a 100%);
     border: 1px solid var(--border);
@@ -134,52 +131,6 @@ html, body, [class*="css"] {
     margin-top: 0.15rem;
 }
 
-/* ── Metric Cards ── */
-.metric-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-.metric-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.4rem 1.6rem;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-}
-.metric-card:hover { border-color: rgba(0,229,160,0.3); }
-.metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    opacity: 0.6;
-}
-.metric-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 0.6rem;
-}
-.metric-value {
-    font-family: var(--font-head);
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1;
-}
-.metric-delta {
-    font-size: 0.78rem;
-    margin-top: 0.4rem;
-    color: var(--accent);
-}
-
-/* ── Section Headers ── */
 .section-head {
     font-family: var(--font-head);
     font-size: 1.1rem;
@@ -194,7 +145,6 @@ html, body, [class*="css"] {
     margin-bottom: 1.2rem;
 }
 
-/* ── Score Badge ── */
 .score-badge {
     display: inline-flex;
     align-items: center;
@@ -209,7 +159,6 @@ html, body, [class*="css"] {
 .score-yellow { background: rgba(255,165,2,0.12);  color: #ffa502; border: 1px solid rgba(255,165,2,0.3); }
 .score-red    { background: rgba(255,71,87,0.12);  color: #ff4757; border: 1px solid rgba(255,71,87,0.3); }
 
-/* ── Verdict Box ── */
 .verdict {
     border-radius: 12px;
     padding: 1.2rem 1.5rem;
@@ -222,7 +171,6 @@ html, body, [class*="css"] {
 .verdict-yellow { background: rgba(255,165,2,0.07);  border-color: var(--warn);    color: #ffe0a0; }
 .verdict-red    { background: rgba(255,71,87,0.07);  border-color: var(--danger);  color: #ffb0b8; }
 
-/* ── Deep Dive Card ── */
 .dive-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -251,11 +199,9 @@ html, body, [class*="css"] {
 }
 .dive-card-delta {
     font-size: 0.72rem;
-    color: var(--accent);
     margin-top: 0.25rem;
 }
 
-/* ── Sidebar Styling ── */
 section[data-testid="stSidebar"] {
     background: var(--surface) !important;
     border-right: 1px solid var(--border) !important;
@@ -288,10 +234,6 @@ section[data-testid="stSidebar"] .block-container { padding: 1.5rem 1.2rem; }
     border-bottom: 1px solid var(--border);
 }
 
-/* ── Streamlit widget overrides ── */
-div[data-testid="stSelectbox"] > div,
-div[data-testid="stSlider"] > div { color: var(--text); }
-
 .stSelectbox > label,
 .stSlider > label,
 .stMultiSelect > label {
@@ -302,14 +244,10 @@ div[data-testid="stSlider"] > div { color: var(--text); }
     font-family: var(--font-body) !important;
 }
 
-/* Dataframe */
 .stDataFrame { border-radius: 12px; overflow: hidden; }
 iframe { border-radius: 12px !important; }
-
-/* Divider */
 hr { border-color: var(--border) !important; margin: 2rem 0 !important; }
 
-/* Footer */
 .footer {
     text-align: center;
     font-size: 0.72rem;
@@ -322,15 +260,30 @@ hr { border-color: var(--border) !important; margin: 2rem 0 !important; }
 """, unsafe_allow_html=True)
 
 # ============================================
-# LOAD DATA
+# LOAD DATA — all cache decorators at top level
 # ============================================
-DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "survival_scores.parquet")
+DATA_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "survival_scores.parquet"
+)
 
+COORDS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "suburb_coords.parquet"
+)
 
+@st.cache_data
 def load_data():
     return pd.read_parquet(DATA_PATH)
 
+@st.cache_data
+def load_coords():
+    if os.path.exists(COORDS_PATH):
+        return pd.read_parquet(COORDS_PATH)
+    return pd.DataFrame(columns=["locality", "region", "country", "lat", "lng"])
+
 df = load_data()
+coords_df = load_coords()
 
 # ============================================
 # SIDEBAR
@@ -403,6 +356,9 @@ filtered_df = region_df[
 ].copy().sort_values("suburbiq_score", ascending=False)
 
 country_name = "United States" if country == "US" else "Canada"
+avg_survival = filtered_df["survival_rate"].mean() if len(filtered_df) > 0 else 0
+top_score = filtered_df["suburbiq_score"].max() if len(filtered_df) > 0 else 0
+total_tracked = int(filtered_df["total_ever"].sum()) if len(filtered_df) > 0 else 0
 
 # ============================================
 # HERO
@@ -422,15 +378,15 @@ st.markdown(f"""
             <div class="hero-stat-label">Suburbs Analysed</div>
         </div>
         <div>
-            <div class="hero-stat-num">{filtered_df['survival_rate'].mean():.0%}</div>
+            <div class="hero-stat-num">{avg_survival:.0%}</div>
             <div class="hero-stat-label">Avg Survival Rate</div>
         </div>
         <div>
-            <div class="hero-stat-num">{filtered_df['total_ever'].sum():,}</div>
+            <div class="hero-stat-num">{total_tracked:,}</div>
             <div class="hero-stat-label">Businesses Tracked</div>
         </div>
         <div>
-            <div class="hero-stat-num">{filtered_df['suburbiq_score'].max():.0f}</div>
+            <div class="hero-stat-num">{top_score:.0f}</div>
             <div class="hero-stat-label">Top SuburbIQ Score</div>
         </div>
     </div>
@@ -438,7 +394,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================
-# TOP TABLE + SCATTER CHART
+# TOP TABLE + CHARTS
 # ============================================
 col_left, col_right = st.columns([1.3, 1], gap="large")
 
@@ -446,108 +402,83 @@ with col_left:
     st.markdown('<div class="section-head">🏆 Top Opportunity Suburbs</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-sub">Ranked by SuburbIQ Score — survival rate weighted with competition density</div>', unsafe_allow_html=True)
 
-    display_df = filtered_df[[
-        "locality", "active_count", "closed_count",
-        "survival_rate", "avg_lifespan_years", "suburbiq_score"
-    ]].head(25).copy()
+    if len(filtered_df) > 0:
+        display_df = filtered_df[[
+            "locality", "active_count", "closed_count",
+            "survival_rate", "avg_lifespan_years", "suburbiq_score"
+        ]].head(25).copy()
 
-    display_df.columns = [
-        "Suburb", "Active", "Closed",
-        "Survival Rate", "Avg Lifespan", "Score"
-    ]
-    display_df["Survival Rate"] = display_df["Survival Rate"].apply(lambda x: f"{x:.0%}")
-    display_df["Avg Lifespan"] = display_df["Avg Lifespan"].apply(
-        lambda x: f"{x:.1f} yrs" if pd.notna(x) else "—"
-    )
-    display_df["Score"] = display_df["Score"].apply(lambda x: f"{x:.0f} / 100")
-
-    st.dataframe(display_df, use_container_width=True, hide_index=True, height=460)
+        display_df.columns = [
+            "Suburb", "Active", "Closed",
+            "Survival Rate", "Avg Lifespan", "Score"
+        ]
+        display_df["Survival Rate"] = display_df["Survival Rate"].apply(lambda x: f"{x:.0%}")
+        display_df["Avg Lifespan"] = display_df["Avg Lifespan"].apply(
+            lambda x: f"{x:.1f} yrs" if pd.notna(x) else "—"
+        )
+        display_df["Score"] = display_df["Score"].apply(lambda x: f"{x:.0f} / 100")
+        st.dataframe(display_df, use_container_width=True, hide_index=True, height=460)
+    else:
+        st.info("No suburbs match your current filters.")
 
 with col_right:
     st.markdown('<div class="section-head">📊 Opportunity Landscape</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-sub">Survival rate vs competition — bubble size = SuburbIQ score</div>', unsafe_allow_html=True)
 
-    plot_df = filtered_df.head(150)
-
-    fig = px.scatter(
-        plot_df,
-        x="active_count",
-        y="survival_rate",
-        size="suburbiq_score",
-        color="suburbiq_score",
-        hover_name="locality",
-        hover_data={
-            "active_count": True,
-            "closed_count": True,
-            "survival_rate": ":.0%",
-            "suburbiq_score": ":.0f",
-            "avg_lifespan_years": ":.1f"
-        },
-        color_continuous_scale=[
-            [0.0, "#ff4757"],
-            [0.4, "#ffa502"],
-            [0.7, "#2ed573"],
-            [1.0, "#00e5a0"]
-        ],
-        labels={
-            "active_count": "Current Competitors",
-            "survival_rate": "Survival Rate",
-            "suburbiq_score": "SuburbIQ Score",
-            "avg_lifespan_years": "Avg Lifespan (yrs)"
-        },
-        size_max=28
-    )
-
-    fig.update_layout(
-        height=220,
-        margin=dict(t=0, b=0, l=0, r=0),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#6b6b80", family="DM Sans"),
-        coloraxis_showscale=False,
-        xaxis=dict(
-            gridcolor="rgba(255,255,255,0.04)",
-            zerolinecolor="rgba(255,255,255,0.08)"
-        ),
-        yaxis=dict(
-            gridcolor="rgba(255,255,255,0.04)",
-            zerolinecolor="rgba(255,255,255,0.08)",
-            tickformat=".0%"
+    if len(filtered_df) > 0:
+        plot_df = filtered_df.head(150)
+        fig = px.scatter(
+            plot_df,
+            x="active_count",
+            y="survival_rate",
+            size="suburbiq_score",
+            color="suburbiq_score",
+            hover_name="locality",
+            color_continuous_scale=[
+                [0.0, "#ff4757"],
+                [0.4, "#ffa502"],
+                [0.7, "#2ed573"],
+                [1.0, "#00e5a0"]
+            ],
+            labels={
+                "active_count": "Current Competitors",
+                "survival_rate": "Survival Rate",
+                "suburbiq_score": "SuburbIQ Score",
+            },
+            size_max=28
         )
-    )
+        fig.update_layout(
+            height=220,
+            margin=dict(t=0, b=0, l=0, r=0),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#6b6b80", family="DM Sans"),
+            coloraxis_showscale=False,
+            xaxis=dict(gridcolor="rgba(255,255,255,0.04)"),
+            yaxis=dict(gridcolor="rgba(255,255,255,0.04)", tickformat=".0%")
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Survival distribution
     st.markdown('<div class="section-head" style="margin-top:1rem">📈 Survival Rate Distribution</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-sub">How risky is this category across the state?</div>', unsafe_allow_html=True)
 
-    fig2 = px.histogram(
-        filtered_df,
-        x="survival_rate",
-        nbins=15,
-        color_discrete_sequence=["#00e5a0"],
-    )
-    fig2.update_traces(marker_line_width=0, opacity=0.8)
-    fig2.update_layout(
-        height=180,
-        margin=dict(t=0, b=0, l=0, r=0),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#6b6b80", family="DM Sans"),
-        xaxis=dict(
-            tickformat=".0%",
-            gridcolor="rgba(255,255,255,0.04)",
-            title=None
-        ),
-        yaxis=dict(
-            gridcolor="rgba(255,255,255,0.04)",
-            title=None
-        ),
-        showlegend=False,
-        bargap=0.05
-    )
-    st.plotly_chart(fig2, use_container_width=True)
+    if len(filtered_df) > 0:
+        fig2 = px.histogram(
+            filtered_df, x="survival_rate", nbins=15,
+            color_discrete_sequence=["#00e5a0"],
+        )
+        fig2.update_traces(marker_line_width=0, opacity=0.8)
+        fig2.update_layout(
+            height=180,
+            margin=dict(t=0, b=0, l=0, r=0),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#6b6b80", family="DM Sans"),
+            xaxis=dict(tickformat=".0%", gridcolor="rgba(255,255,255,0.04)", title=None),
+            yaxis=dict(gridcolor="rgba(255,255,255,0.04)", title=None),
+            showlegend=False, bargap=0.05
+        )
+        st.plotly_chart(fig2, use_container_width=True)
 
 st.markdown("---")
 
@@ -558,39 +489,36 @@ st.markdown('<div class="section-head">🗺️ Suburb Deep Dive + Location Map</
 st.markdown('<div class="section-sub">Select any suburb to see its full survival profile and locate it on the map</div>', unsafe_allow_html=True)
 
 col_dive, col_map = st.columns([1, 1.2], gap="large")
+suburbs_list = filtered_df["locality"].tolist()
+
+# Selected suburb (defined before both columns so both can use it)
+selected = None
+if len(suburbs_list) > 0:
+    selected = st.selectbox(
+        "Select suburb to analyse",
+        options=suburbs_list,
+        label_visibility="collapsed"
+    )
 
 with col_dive:
-    suburbs_list = filtered_df["locality"].tolist()
-
-    if len(suburbs_list) == 0:
-        st.info("No suburbs match your current filters. Try lowering the minimum score or businesses tracked.")
+    if selected is None:
+        st.info("No suburbs match your current filters.")
     else:
-        selected = st.selectbox(
-            "Select suburb to analyse",
-            options=suburbs_list,
-            label_visibility="collapsed"
-        )
-
         row = filtered_df[filtered_df["locality"] == selected].iloc[0]
         score = row["suburbiq_score"]
         sr = row["survival_rate"]
-        avg_sr = filtered_df["survival_rate"].mean()
-        delta_sr = sr - avg_sr
+        delta_sr = sr - avg_survival
 
-        # Score badge
         if score >= 70:
-            badge_class = "score-green"
-            verdict_class = "verdict-green"
+            badge_class, verdict_class = "score-green", "verdict-green"
             verdict_icon = "✅"
             verdict_text = f"<b>{selected}</b> is a strong opportunity zone for {category}s. High survival rate with relatively low competition — a rare combination."
         elif score >= 50:
-            badge_class = "score-yellow"
-            verdict_class = "verdict-yellow"
+            badge_class, verdict_class = "score-yellow", "verdict-yellow"
             verdict_icon = "⚠️"
             verdict_text = f"<b>{selected}</b> shows mixed signals for {category}s. Decent survival rate but increasing competition. Proceed with careful market research."
         else:
-            badge_class = "score-red"
-            verdict_class = "verdict-red"
+            badge_class, verdict_class = "score-red", "verdict-red"
             verdict_icon = "🚨"
             verdict_text = f"<b>{selected}</b> shows risk signals for {category}s. Low survival rate or saturated market. Consider alternative locations."
 
@@ -600,7 +528,6 @@ with col_dive:
         </div>
         """, unsafe_allow_html=True)
 
-        # Stats grid
         lifespan = row["avg_lifespan_years"]
         lifespan_str = f"{lifespan:.1f} yrs" if pd.notna(lifespan) else "—"
         delta_str = f"+{delta_sr:.0%}" if delta_sr >= 0 else f"{delta_sr:.0%}"
@@ -636,131 +563,90 @@ with col_dive:
         """, unsafe_allow_html=True)
 
 with col_map:
-    if len(suburbs_list) > 0 and 'selected' in locals():
-
-        # Load real coordinates
-        COORDS_PATH = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "data", "suburb_coords.parquet"
-        )
-
-        @st.cache_data
-        def load_coords():
-            return pd.read_parquet(COORDS_PATH)
-
-        coords_df = load_coords()
-
-        # Merge real coords with filtered suburbs
+    if selected is not None and len(coords_df) > 0:
         map_df = filtered_df.head(50).copy()
         map_df = map_df.merge(
             coords_df[["locality", "region", "country", "lat", "lng"]],
             on=["locality", "region", "country"],
             how="left"
         )
-
-        # Drop suburbs with no coordinates
         map_df = map_df.dropna(subset=["lat", "lng"])
-
-        # Fix obviously wrong coordinates
         map_df = map_df[
             (map_df["lat"].between(-90, 90)) &
             (map_df["lng"].between(-180, 180))
         ]
 
-        map_df["is_selected"] = map_df["locality"] == selected
-        map_df["label"] = map_df.apply(
-            lambda r: f"{r['locality']}<br>Score: {r['suburbiq_score']:.0f}<br>Survival: {r['survival_rate']:.0%}",
-            axis=1
-        )
-        map_df["marker_size"] = map_df["suburbiq_score"].apply(
-            lambda x: 18 if x >= 70 else 12 if x >= 50 else 8
-        )
+        if len(map_df) > 0:
+            map_df["label"] = map_df.apply(
+                lambda r: f"{r['locality']}<br>Score: {r['suburbiq_score']:.0f}<br>Survival: {r['survival_rate']:.0%}",
+                axis=1
+            )
+            map_df["marker_size"] = map_df["suburbiq_score"].apply(
+                lambda x: 18 if x >= 70 else 12 if x >= 50 else 8
+            )
 
-        # Center map on selected suburb
-        sel_coords = map_df[map_df["locality"] == selected]
-        if len(sel_coords) > 0:
-            center_lat = sel_coords.iloc[0]["lat"]
-            center_lng = sel_coords.iloc[0]["lng"]
+            sel_coords = map_df[map_df["locality"] == selected]
+            center_lat = sel_coords.iloc[0]["lat"] if len(sel_coords) > 0 else map_df["lat"].mean()
+            center_lng = sel_coords.iloc[0]["lng"] if len(sel_coords) > 0 else map_df["lng"].mean()
+
+            fig_map = go.Figure()
+
+            other = map_df[map_df["locality"] != selected]
+            if len(other) > 0:
+                fig_map.add_trace(go.Scattermapbox(
+                    lat=other["lat"], lon=other["lng"],
+                    mode="markers",
+                    marker=dict(
+                        size=other["marker_size"],
+                        color=other["suburbiq_score"],
+                        colorscale=[
+                            [0.0, "#ff4757"], [0.4, "#ffa502"],
+                            [0.7, "#2ed573"], [1.0, "#00e5a0"]
+                        ],
+                        cmin=0, cmax=100, opacity=0.8,
+                        colorbar=dict(
+                            title=dict(text="Score", font=dict(color="#6b6b80", size=10)),
+                            tickfont=dict(color="#6b6b80", size=9),
+                            thickness=8, len=0.6, x=1.0
+                        )
+                    ),
+                    text=other["label"], hoverinfo="text", name="Suburbs"
+                ))
+
+            sel_row = map_df[map_df["locality"] == selected]
+            if len(sel_row) > 0:
+                fig_map.add_trace(go.Scattermapbox(
+                    lat=sel_row["lat"], lon=sel_row["lng"],
+                    mode="markers+text",
+                    marker=dict(size=24, color="#00e5a0", opacity=1.0),
+                    text=[selected],
+                    textposition="top center",
+                    textfont=dict(color="#00e5a0", size=12),
+                    hovertext=sel_row["label"],
+                    hoverinfo="text", name=selected
+                ))
+
+            fig_map.update_layout(
+                mapbox=dict(
+                    style="carto-darkmatter",
+                    center=dict(lat=center_lat, lon=center_lng),
+                    zoom=6
+                ),
+                height=420,
+                margin=dict(t=0, b=0, l=0, r=0),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#6b6b80", family="DM Sans"),
+                showlegend=False
+            )
+            st.plotly_chart(fig_map, use_container_width=True)
+            st.caption(f"📍 Real coordinates — top {len(map_df)} {category} suburbs in {region} · 🟢 = {selected}")
         else:
-            center_lat = map_df["lat"].mean()
-            center_lng = map_df["lng"].mean()
+            st.info("No coordinate data available for this selection.")
+    else:
+        st.info("No suburbs to map for current filters.")
 
-        fig_map = go.Figure()
-
-        # All other suburbs
-        other = map_df[map_df["locality"] != selected]
-        if len(other) > 0:
-            fig_map.add_trace(go.Scattermapbox(
-                lat=other["lat"],
-                lon=other["lng"],
-                mode="markers",
-                marker=dict(
-                    size=other["marker_size"],
-                    color=other["suburbiq_score"],
-                    colorscale=[
-                        [0.0, "#ff4757"],
-                        [0.4, "#ffa502"],
-                        [0.7, "#2ed573"],
-                        [1.0, "#00e5a0"]
-                    ],
-                    cmin=0, cmax=100,
-                    opacity=0.8,
-                    colorbar=dict(
-                        title=dict(
-                            text="Score",
-                            font=dict(color="#6b6b80", size=10)
-                        ),
-                        tickfont=dict(color="#6b6b80", size=9),
-                        thickness=8,
-                        len=0.6,
-                        x=1.0
-                    )
-                ),
-                text=other["label"],
-                hoverinfo="text",
-                name="Suburbs"
-            ))
-
-        # Selected suburb highlighted
-        sel_row = map_df[map_df["locality"] == selected]
-        if len(sel_row) > 0:
-            fig_map.add_trace(go.Scattermapbox(
-                lat=sel_row["lat"],
-                lon=sel_row["lng"],
-                mode="markers+text",
-                marker=dict(
-                    size=24,
-                    color="#00e5a0",
-                    opacity=1.0
-                ),
-                text=[selected],
-                textposition="top center",
-                textfont=dict(color="#00e5a0", size=12),
-                hovertext=sel_row["label"],
-                hoverinfo="text",
-                name=selected
-            ))
-
-        fig_map.update_layout(
-            mapbox=dict(
-                style="carto-darkmatter",
-                center=dict(lat=center_lat, lon=center_lng),
-                zoom=6
-            ),
-            height=420,
-            margin=dict(t=0, b=0, l=0, r=0),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#6b6b80", family="DM Sans"),
-            showlegend=False
-        )
-
-        st.plotly_chart(fig_map, use_container_width=True)
-        st.caption(
-            f"📍 Real coordinates — top {len(map_df)} "
-            f"{category} suburbs in {region} · "
-            f"🟢 = {selected}"
-        )
+st.markdown("---")
 
 # ============================================
 # COMPARE SUBURBS
@@ -777,65 +663,37 @@ compare_suburbs = st.multiselect(
 )
 
 if len(compare_suburbs) > 1:
-    compare_df = filtered_df[
-        filtered_df["locality"].isin(compare_suburbs)
-    ]
-
+    compare_df = filtered_df[filtered_df["locality"].isin(compare_suburbs)]
+    colors = ["#00e5a0", "#7c6fff", "#ffa502"]
     fig_compare = go.Figure()
 
-    metrics = ["survival_rate", "inverse_density", "suburbiq_score"]
-    metric_labels = ["Survival Rate", "Low Competition", "SuburbIQ Score"]
-    colors = ["#00e5a0", "#7c6fff", "#ffa502"]
-
     for i, suburb in enumerate(compare_suburbs):
-        row = compare_df[compare_df["locality"] == suburb]
-        if len(row) == 0:
+        r = compare_df[compare_df["locality"] == suburb]
+        if len(r) == 0:
             continue
-        row = row.iloc[0]
+        r = r.iloc[0]
         color = colors[i % len(colors)]
-
         fig_compare.add_trace(go.Bar(
             name=suburb,
-            x=metric_labels,
-            y=[
-                row["survival_rate"] * 100,
-                row["inverse_density"] * 100,
-                row["suburbiq_score"]
-            ],
-            marker_color=color,
-            opacity=0.85,
-            text=[
-                f"{row['survival_rate']:.0%}",
-                f"{row['inverse_density']:.0%}",
-                f"{row['suburbiq_score']:.0f}"
-            ],
+            x=["Survival Rate", "Low Competition", "SuburbIQ Score"],
+            y=[r["survival_rate"] * 100, r["inverse_density"] * 100, r["suburbiq_score"]],
+            marker_color=color, opacity=0.85,
+            text=[f"{r['survival_rate']:.0%}", f"{r['inverse_density']:.0%}", f"{r['suburbiq_score']:.0f}"],
             textposition="outside",
             textfont=dict(color=color, size=11)
         ))
 
     fig_compare.update_layout(
-        barmode="group",
-        height=300,
+        barmode="group", height=300,
         margin=dict(t=20, b=0, l=0, r=0),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#6b6b80", family="DM Sans"),
-        yaxis=dict(
-            gridcolor="rgba(255,255,255,0.04)",
-            range=[0, 115],
-            title=None
-        ),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.04)", range=[0, 115], title=None),
         xaxis=dict(gridcolor="rgba(255,255,255,0.04)"),
-        legend=dict(
-            font=dict(color="#a0a0b0", size=11),
-            bgcolor="rgba(0,0,0,0)",
-            orientation="h",
-            y=1.1
-        ),
-        bargap=0.15,
-        bargroupgap=0.05
+        legend=dict(font=dict(color="#a0a0b0", size=11), bgcolor="rgba(0,0,0,0)", orientation="h", y=1.1),
+        bargap=0.15, bargroupgap=0.05
     )
-
     st.plotly_chart(fig_compare, use_container_width=True)
 else:
     st.info("Select at least 2 suburbs above to compare them.")
