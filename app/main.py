@@ -637,100 +637,91 @@ with col_dive:
 
 with col_map:
     if len(suburbs_list) > 0 and 'selected' in locals():
-        # Build map data from top suburbs in this region+category
-        map_df = filtered_df[filtered_df["locality"].notna()].head(50).copy()
 
-        # Geocode using approximate lat/lng
-        # We'll use Plotly's built-in US state centering + scatter_geo
-        # Color by score, highlight selected suburb
-
-        # Use scatter_mapbox with approximate coordinates
-        # We need lat/lng — use a simple approach via plotly geo
-        map_df["is_selected"] = map_df["locality"] == selected
-        map_df["marker_size"] = map_df["suburbiq_score"].apply(
-            lambda x: 18 if x >= 70 else 12 if x >= 50 else 8
+        # Load real coordinates
+        COORDS_PATH = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "suburb_coords.parquet"
         )
+
+        @st.cache_data
+        def load_coords():
+            return pd.read_parquet(COORDS_PATH)
+
+        coords_df = load_coords()
+
+        # Merge real coords with filtered suburbs
+        map_df = filtered_df.head(50).copy()
+        map_df = map_df.merge(
+            coords_df[["locality", "region", "country", "lat", "lng"]],
+            on=["locality", "region", "country"],
+            how="left"
+        )
+
+        # Drop suburbs with no coordinates
+        map_df = map_df.dropna(subset=["lat", "lng"])
+
+        # Fix obviously wrong coordinates
+        map_df = map_df[
+            (map_df["lat"].between(-90, 90)) &
+            (map_df["lng"].between(-180, 180))
+        ]
+
+        map_df["is_selected"] = map_df["locality"] == selected
         map_df["label"] = map_df.apply(
             lambda r: f"{r['locality']}<br>Score: {r['suburbiq_score']:.0f}<br>Survival: {r['survival_rate']:.0%}",
             axis=1
         )
+        map_df["marker_size"] = map_df["suburbiq_score"].apply(
+            lambda x: 18 if x >= 70 else 12 if x >= 50 else 8
+        )
 
-        # State center coordinates
-        state_centers = {
-            "AL": (32.8, -86.8), "AK": (64.2, -153.4), "AZ": (34.3, -111.1),
-            "AR": (34.8, -92.2), "CA": (37.2, -119.5), "CO": (39.0, -105.5),
-            "CT": (41.6, -72.7), "DE": (39.0, -75.5), "FL": (27.8, -81.7),
-            "GA": (32.7, -83.4), "HI": (20.9, -157.0), "ID": (44.4, -114.5),
-            "IL": (40.0, -89.2), "IN": (39.9, -86.3), "IA": (42.1, -93.5),
-            "KS": (38.5, -98.4), "KY": (37.5, -85.3), "LA": (31.1, -91.8),
-            "ME": (45.4, -69.0), "MD": (39.1, -76.8), "MA": (42.2, -71.5),
-            "MI": (44.3, -85.4), "MN": (46.4, -93.1), "MS": (32.7, -89.7),
-            "MO": (38.5, -92.5), "MT": (47.0, -110.0), "NE": (41.5, -99.9),
-            "NV": (39.3, -116.6), "NH": (43.5, -71.6), "NJ": (40.1, -74.5),
-            "NM": (34.8, -106.2), "NY": (42.9, -75.6), "NC": (35.5, -79.4),
-            "ND": (47.5, -100.5), "OH": (40.4, -82.8), "OK": (35.6, -96.9),
-            "OR": (44.1, -120.5), "PA": (40.9, -77.8), "RI": (41.7, -71.5),
-            "SC": (33.9, -80.9), "SD": (44.4, -100.2), "TN": (35.9, -86.4),
-            "TX": (31.5, -99.3), "UT": (39.4, -111.1), "VT": (44.1, -72.7),
-            "VA": (37.8, -78.2), "WA": (47.4, -120.6), "WV": (38.6, -80.6),
-            "WI": (44.3, -89.8), "WY": (43.0, -107.6),
-            "ON": (51.3, -85.3), "BC": (53.7, -127.6), "AB": (53.9, -116.6),
-            "QC": (53.0, -70.0), "MB": (55.0, -97.0), "SK": (52.9, -106.4),
-        }
-
-        center_lat, center_lng = state_centers.get(region, (39.5, -98.4))
-
-        # Generate spread coordinates around state center
-        import random
-        random.seed(42)
-        lats, lngs = [], []
-        for i in range(len(map_df)):
-            spread = 2.5
-            lats.append(center_lat + random.uniform(-spread, spread))
-            lngs.append(center_lng + random.uniform(-spread * 1.5, spread * 1.5))
-
-        map_df["lat"] = lats
-        map_df["lng"] = lngs
-
-        # Selected suburb gets exact center
-        sel_idx = map_df[map_df["locality"] == selected].index
-        if len(sel_idx) > 0:
-            map_df.loc[sel_idx[0], "lat"] = center_lat
-            map_df.loc[sel_idx[0], "lng"] = center_lng
+        # Center map on selected suburb
+        sel_coords = map_df[map_df["locality"] == selected]
+        if len(sel_coords) > 0:
+            center_lat = sel_coords.iloc[0]["lat"]
+            center_lng = sel_coords.iloc[0]["lng"]
+        else:
+            center_lat = map_df["lat"].mean()
+            center_lng = map_df["lng"].mean()
 
         fig_map = go.Figure()
 
-        # Non-selected suburbs
+        # All other suburbs
         other = map_df[map_df["locality"] != selected]
-        fig_map.add_trace(go.Scattermapbox(
-            lat=other["lat"],
-            lon=other["lng"],
-            mode="markers",
-            marker=dict(
-                size=other["marker_size"],
-                color=other["suburbiq_score"],
-                colorscale=[
-                    [0.0, "#ff4757"],
-                    [0.4, "#ffa502"],
-                    [0.7, "#2ed573"],
-                    [1.0, "#00e5a0"]
-                ],
-                cmin=0, cmax=100,
-                opacity=0.75,
-                colorbar=dict(
-                    title=dict(text="Score", font=dict(color="#6b6b80", size=10)),
-                    tickfont=dict(color="#6b6b80", size=9),
-                    thickness=8,
-                    len=0.6,
-                    x=1.0
-                )
-            ),
-            text=other["label"],
-            hoverinfo="text",
-            name="Suburbs"
-        ))
+        if len(other) > 0:
+            fig_map.add_trace(go.Scattermapbox(
+                lat=other["lat"],
+                lon=other["lng"],
+                mode="markers",
+                marker=dict(
+                    size=other["marker_size"],
+                    color=other["suburbiq_score"],
+                    colorscale=[
+                        [0.0, "#ff4757"],
+                        [0.4, "#ffa502"],
+                        [0.7, "#2ed573"],
+                        [1.0, "#00e5a0"]
+                    ],
+                    cmin=0, cmax=100,
+                    opacity=0.8,
+                    colorbar=dict(
+                        title=dict(
+                            text="Score",
+                            font=dict(color="#6b6b80", size=10)
+                        ),
+                        tickfont=dict(color="#6b6b80", size=9),
+                        thickness=8,
+                        len=0.6,
+                        x=1.0
+                    )
+                ),
+                text=other["label"],
+                hoverinfo="text",
+                name="Suburbs"
+            ))
 
-        # Selected suburb — highlighted
+        # Selected suburb highlighted
         sel_row = map_df[map_df["locality"] == selected]
         if len(sel_row) > 0:
             fig_map.add_trace(go.Scattermapbox(
@@ -738,14 +729,13 @@ with col_map:
                 lon=sel_row["lng"],
                 mode="markers+text",
                 marker=dict(
-                    size=22,
+                    size=24,
                     color="#00e5a0",
-                    opacity=1.0,
-                    symbol="circle"
+                    opacity=1.0
                 ),
                 text=[selected],
                 textposition="top center",
-                textfont=dict(color="#00e5a0", size=11),
+                textfont=dict(color="#00e5a0", size=12),
                 hovertext=sel_row["label"],
                 hoverinfo="text",
                 name=selected
@@ -755,27 +745,22 @@ with col_map:
             mapbox=dict(
                 style="carto-darkmatter",
                 center=dict(lat=center_lat, lon=center_lng),
-                zoom=5.5
+                zoom=6
             ),
             height=420,
             margin=dict(t=0, b=0, l=0, r=0),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#6b6b80", family="DM Sans"),
-            legend=dict(
-                font=dict(color="#6b6b80", size=9),
-                bgcolor="rgba(0,0,0,0)"
-            ),
             showlegend=False
         )
 
         st.plotly_chart(fig_map, use_container_width=True)
         st.caption(
-            f"📍 Showing top {len(map_df)} {category} suburbs in {region} — "
-            f"green dot = {selected} (your selected suburb)"
+            f"📍 Real coordinates — top {len(map_df)} "
+            f"{category} suburbs in {region} · "
+            f"🟢 = {selected}"
         )
-
-st.markdown("---")
 
 # ============================================
 # COMPARE SUBURBS
