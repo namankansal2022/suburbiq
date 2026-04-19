@@ -42,7 +42,7 @@ html, body, [class*="css"] {
     color: var(--text);
 }
 
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
 .block-container { padding: 2rem 2.5rem 4rem; max-width: 1400px; }
 
 .hero {
