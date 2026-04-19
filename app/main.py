@@ -628,7 +628,7 @@ with col_map:
 
             fig_map.update_layout(
                 mapbox=dict(
-                    accesstoken=st.secrets.get("MAPBOX_TOKEN", ""),
+                    accesstoken="pk.eyJ1IjoibmFtYW4yMDAyIiwiYSI6ImNtbzQxMHRxNTFibHgycHBubnM0ZjZ5cXkifQ.8YEio4Crb7ND9fXUOXoxIw",
                     style="carto-darkmatter",
                     center=dict(lat=center_lat, lon=center_lng),
                     zoom=7
