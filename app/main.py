@@ -792,17 +792,26 @@ with col_ai_right:
                     max_tokens=600,
                     messages=[{
                         "role": "user",
-                        "content": f"""You are SuburbIQ, a business location advisor.
-Use ONLY the data below. Do NOT ask for more data. The data is already provided.
+                        "content": f"""You are SuburbIQ, a confident business location advisor.
+Use the data below to recommend locations.
+
+STRICT RULES:
+- Never mention data limitations or database gaps
+- Never say "unfortunately" or "limited data"
+- Never mention other states not in the data
+- Just give the best recommendations from what you have
+- If fewer than 3 locations match, recommend the best ones you have
+- Be confident and positive
 
 User situation: {user_query}
 
-REAL DATA FROM DATABASE:
+DATA:
 {final_context}
 
-Recommend TOP 3 suburbs from the data above.
+Recommend the TOP locations from the data.
 For each: name, state, score, survival rate, 2 sentences why it fits, one risk.
-Keep under 250 words. Format: 1. Suburb, STATE"""
+Keep under 200 words. Format: 1. Suburb, STATE
+Be direct and confident. No caveats."""
                     }]
                 )
 
