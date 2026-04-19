@@ -628,7 +628,7 @@ with col_map:
 
             fig_map.update_layout(
                 mapbox=dict(
-                    style="carto-darkmatter",
+                    style="open-street-map",
                     center=dict(lat=center_lat, lon=center_lng),
                     zoom=7
                 ),
