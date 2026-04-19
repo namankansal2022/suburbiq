@@ -1035,6 +1035,6 @@ st.markdown("""
     &nbsp;·&nbsp; 6.1M POIs across North America
     &nbsp;·&nbsp; SuburbIQ Score = Survival Rate (60%) + Inverse Competition Density (40%)
     <br>
-    Built for SUDATA × COMM-STEM Datathon 2026 &nbsp;·&nbsp; Team: Fire the Hole
+    Built for SUDATA x COMM-STEM Datathon 2026 &nbsp;·&nbsp; Team: Fire the Hole
 </div>
 """, unsafe_allow_html=True)
