@@ -302,12 +302,15 @@ with st.sidebar:
 
     country_df = df[df["country"] == country]
     regions = sorted(country_df["region"].dropna().unique())
-    default_region = "NY" if "NY" in regions else regions[0]
+    default_region = "NY" if "NY" in regions else (regions[0] if len(regions) > 0 else None)
 
+    if not list(regions):
+        st.warning("No regional data available for this country.")
+        st.stop()
     region = st.selectbox(
         "State / Province",
         options=regions,
-        index=list(regions).index(default_region)
+        index=list(regions).index(default_region) if default_region in regions else 0
     )
 
     region_df = country_df[country_df["region"] == region]
