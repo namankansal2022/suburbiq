@@ -593,7 +593,7 @@ with col_map:
 
             other = map_df[map_df["locality"] != selected]
             if len(other) > 0:
-                fig_map.add_trace(go.Scattermapbox(
+                fig_map.add_trace(go.Scattermap(
                     lat=other["lat"], lon=other["lng"],
                     mode="markers",
                     marker=dict(
@@ -615,7 +615,7 @@ with col_map:
 
             sel_row = map_df[map_df["locality"] == selected]
             if len(sel_row) > 0:
-                fig_map.add_trace(go.Scattermapbox(
+                fig_map.add_trace(go.Scattermap(
                     lat=sel_row["lat"], lon=sel_row["lng"],
                     mode="markers+text",
                     marker=dict(size=24, color="#00e5a0", opacity=1.0),
@@ -627,7 +627,7 @@ with col_map:
                 ))
 
             fig_map.update_layout(
-                mapbox=dict(
+                map=dict(
                     style="open-street-map",
                     center=dict(lat=center_lat, lon=center_lng),
                     zoom=7
