@@ -628,8 +628,8 @@ with col_map:
 
             fig_map.update_layout(
                 mapbox=dict(
-                    accesstoken="PASTE_PASTE_YOUR_NEW_TOKEN_HERE_HERE",
-                    style="streets-v12",
+                    accesstoken="PASTE_pk.eyJ1IjoibmFtYW4yMDAyIiwiYSI6ImNtbzU1Z3Y1NTFtczkzMXEzcW9jczYwcG0ifQ.laCZWJ6SH1ks1zwuW_zPEQ_HERE",
+                    style="carto-darkmatter",
                     center=dict(lat=center_lat, lon=center_lng),
                     zoom=7
                 ),
