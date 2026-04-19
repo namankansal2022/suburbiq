@@ -758,9 +758,20 @@ with col_ai_right:
                         break
 
                 if detected_cat:
-                    cat_df = df[df["category"].str.contains(detected_cat, case=False, na=False)].sort_values("suburbiq_score", ascending=False).head(30)
+                    cat_df = df[df["category"].str.contains(detected_cat, case=False, na=False)].sort_values("suburbiq_score", ascending=False).head(50)
                 else:
-                    cat_df = df.sort_values("suburbiq_score", ascending=False).head(30)
+                    cat_df = df.sort_values("suburbiq_score", ascending=False).head(50)
+                
+                # If user mentions a state, filter to that state
+                us_states = {"california": "CA", "ohio": "OH", "new york": "NY", 
+                            "texas": "TX", "florida": "FL", "illinois": "IL",
+                            "canada": "CA", "ontario": "ON"}
+                for state_name, state_code in us_states.items():
+                    if state_name in user_query.lower():
+                        state_filtered = cat_df[cat_df["region"] == state_code]
+                        if len(state_filtered) >= 3:
+                            cat_df = state_filtered
+                        break
 
                 context_lines = []
                 for _, r in cat_df.iterrows():
@@ -804,7 +815,9 @@ Keep under 250 words. Format: 1. Suburb, STATE"""
                                 letter-spacing:0.15em; color:#00e5a0; margin-bottom:1rem">
                         SuburbIQ AI Recommendation
                     </div>
-                    {response_text.replace(chr(10), "<br>")}
+                    {response_text
+    .replace("**", "")
+    .replace(chr(10), "<br>")}
                 </div>
                 """, unsafe_allow_html=True)
 
