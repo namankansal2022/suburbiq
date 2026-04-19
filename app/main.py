@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
-import anthropic
+
 # ============================================
 # PAGE CONFIG
 # ============================================
@@ -628,7 +628,7 @@ with col_map:
 
             fig_map.update_layout(
                 mapbox=dict(
-                    accesstoken=st.secrets["MAPBOX_TOKEN"],
+                    accesstoken="YOUR_TOKEN_HERE",
                     style="mapbox://styles/mapbox/navigation-day-v1",
                     center=dict(lat=center_lat, lon=center_lng),
                     zoom=7
@@ -698,215 +698,7 @@ if len(compare_suburbs) > 1:
     st.plotly_chart(fig_compare, use_container_width=True)
 else:
     st.info("Select at least 2 suburbs above to compare them.")
-# ============================================
-# AI ADVISOR
-# ============================================
-st.markdown("---")
-st.markdown('<div class="section-head">🤖 AI Location Advisor</div>', 
-    unsafe_allow_html=True)
-st.markdown(
-    '<div class="section-sub">Describe your business situation in plain English '
-    '— SuburbIQ AI will find your best match from the data</div>',
-    unsafe_allow_html=True
-)
 
-
-
-col_ai_left, col_ai_right = st.columns([1, 1], gap="large")
-
-with col_ai_left:
-    st.markdown(f"""
-    <div style="
-        background: linear-gradient(135deg, #0d1117, #0f1a2e);
-        border: 1px solid #2a2a3a;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-    ">
-        <div style="font-size:0.7rem; text-transform:uppercase; 
-                    letter-spacing:0.15em; color:#6b6b80; margin-bottom:0.8rem">
-            💡 Example queries
-        </div>
-        <div style="font-size:0.85rem; color:#a0a0b0; line-height:2">
-            "I want to open a gym in Ohio with low competition"<br>
-            "Best suburb for a café with high survival rate in NY"<br>
-            "Where should I open a bakery in Canada?"<br>
-            "Find me an underserved market for restaurants in CA"
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    user_query = st.text_area(
-        "Your situation",
-        placeholder="e.g. I want to open a small gym in Ohio. "
-                    "I have limited budget so I need low competition "
-                    "but want to be in a suburb with proven survival rates...",
-        height=120,
-        label_visibility="collapsed"
-    )
-
-    ask_button = st.button(
-        "🔍 Find My Best Suburbs",
-        use_container_width=True
-    )
-
-with col_ai_right:
-    if ask_button and user_query:
-        with st.spinner("Analysing 144,000 suburb-category pairs..."):
-            try:
-                # Build context from top suburbs across all states
-                # Filter to relevant category if mentioned
-                ai_df = df.copy()
-
-                # Get top 30 best scoring suburbs for context
-                top_suburbs = ai_df.sort_values(
-                    "suburbiq_score", ascending=False
-                ).head(50)
-
-                # Format as readable context
-                context_rows = []
-                for _, r in top_suburbs.iterrows():
-                    lifespan = f"{r['avg_lifespan_years']:.1f}yrs" \
-                        if pd.notna(r['avg_lifespan_years']) else "N/A"
-                    context_rows.append(
-                        f"{r['locality']}, {r['region']} ({r['country']}) | "
-                        f"Category: {r['category']} | "
-                        f"Score: {r['suburbiq_score']:.0f}/100 | "
-                        f"Survival: {r['survival_rate']:.0%} | "
-                        f"Active: {int(r['active_count'])} | "
-                        f"Closed: {int(r['closed_count'])} | "
-                        f"Avg lifespan: {lifespan}"
-                    )
-
-                context = "\n".join(context_rows)
-
-                # Also get category-specific data if we can detect it
-                category_keywords = {
-                    "gym": "Gym", "fitness": "Gym",
-                    "café": "Café", "cafe": "Café", "coffee": "Café",
-                    "restaurant": "Restaurant", "food": "Restaurant",
-                    "bakery": "Bakery", "bar": "Bar",
-                    "clinic": "Physician", "doctor": "Physician",
-                    "retail": "Fashion Retail"
-                }
-
-                detected_cat = None
-                for keyword, cat in category_keywords.items():
-                    if keyword.lower() in user_query.lower():
-                        detected_cat = cat
-                        break
-
-                if detected_cat:
-                    cat_df = df[
-                        df["category"] == detected_cat
-                    ].sort_values(
-                        "suburbiq_score", ascending=False
-                    ).head(30)
-
-                    cat_rows = []
-                    for _, r in cat_df.iterrows():
-                        lifespan = f"{r['avg_lifespan_years']:.1f}yrs" \
-                            if pd.notna(r['avg_lifespan_years']) else "N/A"
-                        cat_rows.append(
-                            f"{r['locality']}, {r['region']} ({r['country']}) | "
-                            f"Score: {r['suburbiq_score']:.0f}/100 | "
-                            f"Survival: {r['survival_rate']:.0%} | "
-                            f"Active: {int(r['active_count'])} | "
-                            f"Avg lifespan: {lifespan}"
-                        )
-                    category_context = "\n".join(cat_rows)
-                else:
-                    category_context = context
-
-                # Call Claude API
-                client = anthropic.Anthropic(
-                    api_key=st.secrets["ANTHROPIC_KEY"]
-                )
-
-                message = client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=600,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": f"""You are SuburbIQ, an expert business 
-location advisor powered by real POI survival data across North America.
-
-User's situation: {user_query}
-
-Real suburb data from our database:
-{category_context}
-
-Based on this real data, recommend the TOP 3 specific suburbs for this person.
-For each suburb:
-- Name the suburb and state
-- Give their SuburbIQ Score and survival rate
-- Explain in 1-2 sentences WHY it fits their specific situation
-- Mention one risk or consideration
-
-Be conversational, specific, and reference the actual numbers.
-Keep total response under 250 words.
-Format with clear suburb headers like "1. Suburb Name, STATE"."""
-                        }
-                    ]
-                )
-
-                response_text = message.content[0].text
-
-                st.markdown(f"""
-                <div style="
-                    background: linear-gradient(135deg, 
-                        rgba(0,229,160,0.05), rgba(124,111,255,0.05));
-                    border: 1px solid rgba(0,229,160,0.2);
-                    border-radius: 16px;
-                    padding: 1.8rem;
-                    font-size: 0.9rem;
-                    line-height: 1.8;
-                    color: #e8e8f0;
-                ">
-                    <div style="font-size:0.7rem; text-transform:uppercase; 
-                                letter-spacing:0.15em; color:#00e5a0; 
-                                margin-bottom:1rem">
-                        🤖 SuburbIQ AI Recommendation
-                    </div>
-                    {response_text.replace(chr(10), '<br>')}
-                </div>
-                """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"AI Advisor error: {str(e)}")
-
-    elif ask_button and not user_query:
-        st.warning("Please describe your situation first!")
-    else:
-        st.markdown(f"""
-        <div style="
-            background: var(--surface2);
-            border: 1px dashed #2a2a3a;
-            border-radius: 16px;
-            padding: 3rem 2rem;
-            text-align: center;
-            color: #6b6b80;
-            font-size: 0.85rem;
-        ">
-            <div style="font-size:2rem; margin-bottom:1rem">🤖</div>
-            Describe your business situation on the left<br>
-            and SuburbIQ AI will analyse 144,000 data points<br>
-            to find your perfect location.
-        </div>
-        """, unsafe_allow_html=True)
-# ============================================
-# FOOTER
-# ============================================
-st.markdown("""
-<div class="footer">
-    Built on <a href="https://huggingface.co/datasets/foursquare/fsq-os-places">Foursquare Open Source Places</a>
-    &nbsp;·&nbsp; 6.1M POIs across North America
-    &nbsp;·&nbsp; SuburbIQ Score = Survival Rate (60%) + Inverse Competition Density (40%)
-    <br>
-    Built for SUDATA × COMM-STEM Datathon 2026 &nbsp;·&nbsp; Team: Fire the Hole
-</div>
-""", unsafe_allow_html=True)
 # ============================================
 # AI ADVISOR
 # ============================================
@@ -917,7 +709,7 @@ st.markdown('<div class="section-sub">Describe your business situation in plain 
 col_ai_left, col_ai_right = st.columns([1, 1], gap="large")
 
 with col_ai_left:
-    st.markdown(f"""
+    st.markdown("""
     <div style="background: linear-gradient(135deg, #0d1117, #0f1a2e);
         border: 1px solid #2a2a3a; border-radius: 16px;
         padding: 1.5rem; margin-bottom: 1rem;">
@@ -927,7 +719,7 @@ with col_ai_left:
         </div>
         <div style="font-size:0.85rem; color:#a0a0b0; line-height:2">
             "I want to open a gym in Ohio with low competition"<br>
-            "Best suburb for a café with high survival rate in NY"<br>
+            "Best suburb for a cafe with high survival rate in NY"<br>
             "Where should I open a bakery in Canada?"<br>
             "Find me an underserved market for restaurants in CA"
         </div>
@@ -938,10 +730,15 @@ with col_ai_left:
         "Your situation",
         placeholder="e.g. I want to open a small gym in Ohio...",
         height=120,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="ai_query"
     )
 
-    ask_button = st.button("🔍 Find My Best Suburbs", use_container_width=True)
+    ask_button = st.button(
+        "Find My Best Suburbs",
+        use_container_width=True,
+        key="ai_button"
+    )
 
 with col_ai_right:
     if ask_button and user_query:
@@ -949,7 +746,7 @@ with col_ai_right:
             try:
                 category_keywords = {
                     "gym": "Gym", "fitness": "Gym",
-                    "cafe": "Café", "café": "Café", "coffee": "Café",
+                    "cafe": "Cafe", "coffee": "Cafe",
                     "restaurant": "Restaurant", "food": "Restaurant",
                     "bakery": "Bakery", "bar": "Bar",
                     "clinic": "Physician", "doctor": "Physician",
@@ -967,7 +764,7 @@ with col_ai_right:
 
                 context_lines = []
                 for _, r in cat_df.iterrows():
-                    lifespan = f"{r['avg_lifespan_years']:.1f}yrs" if pd.notna(r.get('avg_lifespan_years')) else "N/A"
+                    lifespan = f"{r['avg_lifespan_years']:.1f}yrs" if pd.notna(r.get("avg_lifespan_years")) else "N/A"
                     context_lines.append(
                         f"{r['locality']}, {r['region']} ({r['country']}) | "
                         f"Category: {r['category']} | Score: {r['suburbiq_score']:.0f}/100 | "
@@ -976,6 +773,7 @@ with col_ai_right:
                     )
                 final_context = "\n".join(context_lines)
 
+                import anthropic
                 client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_KEY"])
 
                 message = client.messages.create(
@@ -984,11 +782,11 @@ with col_ai_right:
                     messages=[{
                         "role": "user",
                         "content": f"""You are SuburbIQ, a business location advisor.
-Use ONLY the data below. Do NOT ask for more data.
+Use ONLY the data below. Do NOT ask for more data. The data is already provided.
 
 User situation: {user_query}
 
-REAL DATA:
+REAL DATA FROM DATABASE:
 {final_context}
 
 Recommend TOP 3 suburbs from the data above.
@@ -1004,9 +802,9 @@ Keep under 250 words. Format: 1. Suburb, STATE"""
                     padding: 1.8rem; font-size: 0.9rem; line-height: 1.8; color: #e8e8f0;">
                     <div style="font-size:0.7rem; text-transform:uppercase;
                                 letter-spacing:0.15em; color:#00e5a0; margin-bottom:1rem">
-                        🤖 SuburbIQ AI Recommendation
+                        SuburbIQ AI Recommendation
                     </div>
-                    {response_text.replace(chr(10), '<br>')}
+                    {response_text.replace(chr(10), "<br>")}
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1026,6 +824,7 @@ Keep under 250 words. Format: 1. Suburb, STATE"""
         </div>
         """, unsafe_allow_html=True)
 
+
 # ============================================
 # FOOTER
 # ============================================
@@ -1035,6 +834,6 @@ st.markdown("""
     &nbsp;·&nbsp; 6.1M POIs across North America
     &nbsp;·&nbsp; SuburbIQ Score = Survival Rate (60%) + Inverse Competition Density (40%)
     <br>
-    Built for SUDATA x COMM-STEM Datathon 2026 &nbsp;·&nbsp; Team: Fire the Hole
+    Built for SUDATA × COMM-STEM Datathon 2026 &nbsp;·&nbsp; Team: Fire the Hole
 </div>
 """, unsafe_allow_html=True)
