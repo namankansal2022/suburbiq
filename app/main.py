@@ -488,7 +488,7 @@ st.markdown("---")
 st.markdown('<div class="section-head">🗺️ Suburb Deep Dive + Location Map</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-sub">Select any suburb to see its full survival profile and locate it on the map</div>', unsafe_allow_html=True)
 
-col_dive, col_map = st.columns([1, 1.2], gap="large")
+col_dive, col_map = st.columns([1, 1], gap="medium")
 suburbs_list = filtered_df["locality"].tolist()
 
 # Selected suburb (defined before both columns so both can use it)
@@ -631,7 +631,7 @@ with col_map:
                     accesstoken="PASTE_pk.eyJ1IjoibmFtYW4yMDAyIiwiYSI6ImNtbzU1Z3Y1NTFtczkzMXEzcW9jczYwcG0ifQ.laCZWJ6SH1ks1zwuW_zPEQ_HERE",
                     style="carto-darkmatter",
                     center=dict(lat=center_lat, lon=center_lng),
-                    zoom=7
+                    zoom=5
                 ),
                 height=420,
                 margin=dict(t=0, b=0, l=0, r=0),
