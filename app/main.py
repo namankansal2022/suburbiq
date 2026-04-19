@@ -296,8 +296,8 @@ with st.sidebar:
 
     country = st.selectbox(
         "Country",
-        options=["US", "CA"],
-        format_func=lambda x: "🇺🇸 United States" if x == "US" else "🇨🇦 Canada"
+        options=["US", "CA", "AU", "NZ", "GB"],
+        format_func=lambda x: {"US": "🇺🇸 United States", "CA": "🇨🇦 Canada", "AU": "🇦🇺 Australia", "NZ": "🇳🇿 New Zealand", "GB": "🇬🇧 United Kingdom"}.get(x, x)
     )
 
     country_df = df[df["country"] == country]
