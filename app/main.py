@@ -290,7 +290,6 @@ coords_df = load_coords()
 # ============================================
 with st.sidebar:
     st.markdown('<div class="sidebar-logo">SuburbIQ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-tagline">North America\'s Business<br>Location Intelligence Platform</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sidebar-section">Geography</div>', unsafe_allow_html=True)
 
